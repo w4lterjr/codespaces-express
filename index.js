@@ -1,73 +1,99 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const app = express();
-const port = 3000;
-const dataFilePath = path.join(__dirname, 'usuarios.json');
+const mongoose = require('mongoose');
 
-// Middleware para parsear JSON
-app.use(express.json());
+mongoose.connect('mongodb://localhost:27017/nome_do_banco', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('Conectado ao MongoDB'))
+.catch(err => console.error('Erro ao conectar ao MongoDB', err));
+const mongoose = require('mongoose');
 
-// Função para ler dados do arquivo JSON
-const lerDados = () => {
-    const dados = fs.readFileSync(dataFilePath);
-    return JSON.parse(dados);
+// Conectar ao MongoDB
+mongoose.connect('mongodb://localhost:27017/nome_do_banco', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('Conectado ao MongoDB'))
+.catch(err => console.error('Erro ao conectar ao MongoDB', err));
+
+// Definir o esquema e o modelo do Usuário
+const usuarioSchema = new mongoose.Schema({
+  nome: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  idade: Number
+});
+
+const Usuario = mongoose.model('Usuario', usuarioSchema);
+
+// Função para criar um usuário
+const criarUsuario = async () => {
+  try {
+    const usuario = new Usuario({
+      nome: 'João',
+      email: 'joao@example.com',
+      idade: 30
+    });
+    const resultado = await usuario.save();
+    console.log('Usuário criado:', resultado);
+  } catch (err) {
+    console.error('Erro ao criar usuário:', err);
+  }
 };
 
-// Função para escrever dados no arquivo JSON
-const escreverDados = (dados) => {
-    fs.writeFileSync(dataFilePath, JSON.stringify(dados, null, 2));
+// Função para ler todos os usuários
+const lerUsuarios = async () => {
+  try {
+    const usuarios = await Usuario.find();
+    console.log('Usuários encontrados:', usuarios);
+  } catch (err) {
+    console.error('Erro ao ler usuários:', err);
+  }
 };
 
-// GET: Obtém todos os usuários
-app.get('/', (req, res) => {
-    const usuarios = lerDados();
-    res.json(usuarios);
-});
+// Função para encontrar um usuário por ID
+const encontrarUsuarioPorId = async (id) => {
+  try {
+    const usuario = await Usuario.findById(id);
+    console.log('Usuário encontrado:', usuario);
+  } catch (err) {
+    console.error('Erro ao encontrar usuário:', err);
+  }
+};
 
-// POST: Cria um novo usuário
-app.post('/', (req, res) => {
-    const novoUsuario = req.body;
-    const usuarios = lerDados();
-    novoUsuario.id = usuarios.length ? usuarios[usuarios.length - 1].id + 1 : 1;
-    usuarios.push(novoUsuario);
-    escreverDados(usuarios);
-    res.status(201).json(novoUsuario);
-});
+// Função para atualizar um usuário
+const atualizarUsuario = async (id, dadosAtualizados) => {
+  try {
+    const resultado = await Usuario.findByIdAndUpdate(id, dadosAtualizados, { new: true });
+    console.log('Usuário atualizado:', resultado);
+  } catch (err) {
+    console.error('Erro ao atualizar usuário:', err);
+  }
+};
 
-// PUT: Atualiza um usuário existente
-app.put('/usuarios/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    const usuarioAtualizado = req.body;
-    const usuarios = lerDados();
-    const index = usuarios.findIndex(user => user.id === id);
+// Função para deletar um usuário
+const deletarUsuario = async (id) => {
+  try {
+    const resultado = await Usuario.findByIdAndDelete(id);
+    console.log('Usuário deletado:', resultado);
+  } catch (err) {
+    console.error('Erro ao deletar usuário:', err);
+  }
+};
 
-    if (index !== -1) {
-        usuarios[index] = { id, ...usuarioAtualizado };
-        escreverDados(usuarios);
-        res.json(usuarios[index]);
-    } else {
-        res.status(404).json({ message: 'Usuário não encontrado' });
-    }
-});
+// Executar as funções para demonstrar as operações CRUD
 
-// DELETE: Remove um usuário
-app.delete('/usuarios/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    const usuarios = lerDados();
-    const index = usuarios.findIndex(user => user.id === id);
+// Criação de um usuário
+criarUsuario();
 
-    if (index !== -1) {
-        const usuarioRemovido = usuarios.splice(index, 1);
-        escreverDados(usuarios);
-        res.json(usuarioRemovido[0]);
-    } else {
-        res.status(404).json({ message: 'Usuário não encontrado' });
-    }
-});
+// Leitura de todos os usuários
+lerUsuarios();
 
-// Inicia o servidor
-app.listen(port, () => {
-    console.log(`Servidor rodando em http://localhost:${port}`);
-});
+// Substitua 'id_do_usuario' pelo ID real do usuário
+const usuarioId = 'id_do_usuario';
+encontrarUsuarioPorId(usuarioId);
 
+// Substitua 'id_do_usuario' e os dados a serem atualizados
+atualizarUsuario(usuarioId, { idade: 31 });
+
+// Substitua 'id_do_usuario' pelo ID real do usuário
+deletarUsuario(usuarioId);
